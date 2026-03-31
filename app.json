@@ -24,7 +24,35 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "name": "نور المسلم",
+      "shortName": "نور المسلم",
+      "themeColor": "#10B981",
+      "backgroundColor": "#0f172a",
+      "display": "standalone",
+      "lang": "ar",
+      "dir": "rtl"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "يحتاج نور المسلم إلى موقعك لحساب مواقيت الصلاة والقبلة.",
+          "locationWhenInUsePermission": "يحتاج نور المسلم إلى موقعك لحساب مواقيت الصلاة والقبلة."
+        }
+      ],
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#10B981",
+          "sounds": [],
+          "androidMode": "default"
+        }
+      ]
+    ]
   }
 }

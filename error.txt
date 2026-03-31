@@ -1,0 +1,22 @@
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Web Bundling failed 1148ms node_modules\expo-router\entry.js (1 module)
+SyntaxError: node_modules\expo-router\entry.js: [BABEL] C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\expo-router\entry.js: Cannot find module 'react-native-worklets/plugin'
+Require stack:
+- C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\@babel\core\lib\config\files\plugins.js
+- C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\@babel\core\lib\config\files\index.js
+- C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\@babel\core\lib\index.js
+- C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\expo\node_modules\@expo\metro-config\build\transform-worker\metro-transform-worker.js
+- C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\expo\node_modules\@expo\metro-config\build\transform-worker\supervising-transform-worker.js
+- C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\metro\src\DeltaBundler\Worker.flow.js
+- C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\metro\src\DeltaBundler\Worker.js
+- C:\Users\moham\Desktop\Noor Al Muslim\noor-al-muslim\node_modules\jest-worker\build\workers\threadChild.js
+
+Make sure that all the Babel plugins and presets you are using
+are defined as dependencies or devDependencies in your package.json
+file. It's possible that the missing plugin is loaded by a preset
+you are using that forgot to add the plugin to its dependencies: you
+can workaround this problem by explicitly adding the missing package
+to your top-level package.json.
+

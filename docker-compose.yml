@@ -1,0 +1,16 @@
+services:
+  # --- Noor Al Muslim App ---
+  noor_app:
+    build: .
+    image: noorapp:latest
+    container_name: noorapp
+    restart: always
+    expose:
+      - 80
+    networks:
+      - proxy_network
+
+networks:
+  proxy_network:
+    name: proxy_network
+    external: true

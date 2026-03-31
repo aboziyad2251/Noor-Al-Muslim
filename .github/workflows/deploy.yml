@@ -1,0 +1,36 @@
+name: Deploy Web App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Expo Web
+        run: npx expo export -p web
+
+      - name: Deploy to Server via SSH
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: 76.13.40.119
+          REMOTE_USER: ${{ secrets.SSH_USER }}
+          TARGET: /var/www/noor
+          SOURCE: "dist/"
+          ARGS: "-rlgoDzvc -i --delete"
+          EXCLUDE: "/node_modules/"

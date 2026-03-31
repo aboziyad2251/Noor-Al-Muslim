@@ -1,0 +1,1 @@
+app/(tabs)/index.tsx(3,16): error TS2305: Module '"lucide-react-native"' has no exported member 'Mosque'.
