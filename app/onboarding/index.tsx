@@ -2,12 +2,14 @@ import { View, Text, TouchableOpacity, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ChevronLeft, LogIn } from 'lucide-react-native';
+import { requestNotificationPermission } from '../../lib/notifications';
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const completeOnboarding = useAuthStore(state => state.completeOnboarding);
 
   const handleStart = async () => {
+    await requestNotificationPermission();
     await completeOnboarding();
     router.replace('/(tabs)/');
   };

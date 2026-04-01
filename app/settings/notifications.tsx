@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Switch, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Bell, BellOff, Moon, Sun, Book } from 'lucide-react-native';
+import { ChevronRight, Bell, BellOff, Moon, Sun, Book, Volume2 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { requestNotificationPermission, scheduleDailyReminder } from '../../lib/notifications';
+import { playAthan, stopAthan, isAthanPlaying } from '../../lib/athan';
 
 const SETTINGS_KEY = 'noor_notif_settings';
 
@@ -17,11 +18,13 @@ interface NotifSettings {
   morningAdhkar: boolean;
   eveningAdhkar: boolean;
   dailyQuran: boolean;
+  athanEnabled: boolean;
 }
 
 const DEFAULT: NotifSettings = {
   fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true,
   morningAdhkar: true, eveningAdhkar: true, dailyQuran: false,
+  athanEnabled: true,
 };
 
 const PRAYER_ROWS: { key: keyof NotifSettings; label: string; sub: string }[] = [
@@ -42,6 +45,7 @@ export default function NotificationSettingsScreen() {
   const router = useRouter();
   const [settings, setSettings] = useState<NotifSettings>(DEFAULT);
   const [permissionGranted, setPermissionGranted] = useState(true);
+  const [athanPreviewPlaying, setAthanPreviewPlaying] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -70,6 +74,17 @@ export default function NotificationSettingsScreen() {
       await scheduleDailyReminder(9, 0, '📖 ورد القرآن', 'لا تنسَ ورد القرآن اليومي');
     }
     // Prayer time notifications are re-scheduled from usePrayerTimes on next app open
+  };
+
+  const toggleAthanPreview = async () => {
+    if (athanPreviewPlaying) {
+      await stopAthan();
+      setAthanPreviewPlaying(false);
+    } else {
+      setAthanPreviewPlaying(true);
+      await playAthan('fajr'); // preview using fajr athan
+      setAthanPreviewPlaying(false);
+    }
   };
 
   const requestPermission = async () => {
@@ -168,6 +183,43 @@ export default function NotificationSettingsScreen() {
                   </View>
                 </View>
               ))}
+            </View>
+          </View>
+
+          {/* Athan settings */}
+          <View>
+            <View className="flex-row items-center gap-2 mb-4">
+              <Volume2 color="#10B981" size={18} />
+              <Text className="text-white font-tajawal font-bold text-lg">الأذان</Text>
+            </View>
+            <View className="bg-[#1E293B] rounded-2xl border border-white/5 overflow-hidden">
+              <View className="flex-row items-center justify-between px-4 py-4 border-b border-white/5">
+                <Switch
+                  value={settings.athanEnabled}
+                  onValueChange={() => toggle('athanEnabled')}
+                  trackColor={{ false: '#334155', true: '#10B981' }}
+                  thumbColor="white"
+                  ios_backgroundColor="#334155"
+                />
+                <View className="flex-1 mr-3 items-end">
+                  <Text className="text-white font-tajawal font-bold text-base">تشغيل الأذان تلقائياً</Text>
+                  <Text className="text-slate-400 font-tajawal text-xs mt-0.5">
+                    يُشغَّل أذان الفجر عند وقت الفجر، وأذان الصلاة لباقي الأوقات
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={toggleAthanPreview}
+                className="flex-row items-center justify-between px-4 py-4"
+              >
+                <View className="flex-row items-center gap-2 bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                  <Volume2 color="#10B981" size={14} />
+                  <Text className="text-emerald-400 font-tajawal text-xs font-bold">
+                    {athanPreviewPlaying ? 'إيقاف المعاينة' : 'معاينة الأذان'}
+                  </Text>
+                </View>
+                <Text className="text-slate-400 font-tajawal text-sm">استمع للأذان</Text>
+              </TouchableOpacity>
             </View>
           </View>
 

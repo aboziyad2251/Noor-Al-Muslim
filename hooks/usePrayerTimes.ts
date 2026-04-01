@@ -1,7 +1,56 @@
 import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeModules, Platform } from 'react-native';
 import { getTodayPrayerTimes } from '../lib/prayer';
 import { schedulePrayerNotifications } from '../lib/notifications';
+import { LOCATION_STORAGE_KEY, SavedLocation } from '../lib/cities';
+
+const { PrayerWidgetModule } = NativeModules;
+
+const SETTINGS_KEY = 'noor_notif_settings';
+const ALL_PRAYERS = new Set(['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']);
+
+async function getEnabledPrayers(): Promise<Set<string>> {
+  try {
+    const raw = await AsyncStorage.getItem(SETTINGS_KEY);
+    if (!raw) return ALL_PRAYERS;
+    const s = JSON.parse(raw);
+    return new Set(
+      ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].filter((k) => s[k] !== false)
+    );
+  } catch {
+    return ALL_PRAYERS;
+  }
+}
+
+async function resolveLocation(): Promise<{ lat: number; lng: number; cityName: string }> {
+  // 1. User-saved location takes priority
+  try {
+    const raw = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
+    if (raw) {
+      const saved: SavedLocation = JSON.parse(raw);
+      return { lat: saved.lat, lng: saved.lng, cityName: saved.name };
+    }
+  } catch {}
+
+  // 2. Fall back to GPS
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status === 'granted') {
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const [place] = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      const cityName = place?.city ?? place?.region ?? 'موقعك الحالي';
+      return { lat: loc.coords.latitude, lng: loc.coords.longitude, cityName };
+    }
+  } catch {}
+
+  // 3. Final fallback — Mecca
+  return { lat: 21.3891, lng: 39.8579, cityName: 'مكة المكرمة' };
+}
 
 export interface PrayerEntry {
   name: string;
@@ -40,7 +89,7 @@ export function usePrayerTimes(): UsePrayerTimesResult {
   const [prayers, setPrayers] = useState<PrayerEntry[]>([]);
   const [nextPrayer, setNextPrayer] = useState<PrayerEntry | null>(null);
   const [minutesUntilNext, setMinutesUntilNext] = useState(0);
-  const [cityName, setCityName] = useState('موقعك الحالي');
+  const [cityName, setCityName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,44 +98,27 @@ export function usePrayerTimes(): UsePrayerTimesResult {
 
     async function load() {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const { lat, lng, cityName: city } = await resolveLocation();
 
-        let lat = 21.3891; // Mecca fallback
-        let lng = 39.8579;
+        if (!cancelled) setCityName(city);
 
-        if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          lat = loc.coords.latitude;
-          lng = loc.coords.longitude;
+        const times = getTodayPrayerTimes(lat, lng);
+        const now = new Date();
 
-          // Reverse geocode for city name
-          const [place] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-          if (place && !cancelled) {
-            setCityName(place.city ?? place.region ?? 'موقعك الحالي');
-          }
-        } else {
-          setCityName('مكة المكرمة');
-        }
-
-        let times = getTodayPrayerTimes(lat, lng);
-        let now = new Date();
-
-        let entries: PrayerEntry[] = PRAYER_NAMES.map(({ key, ar }) => ({
+        const entries: PrayerEntry[] = PRAYER_NAMES.map(({ key, ar }) => ({
           name: ar,
           arabicName: ar,
           time: times[key],
           timeLabel: formatArabicTime(times[key]),
         }));
 
-        // Find next prayer
-        let upcoming = entries
+        const upcoming = entries
           .filter((p) => p.arabicName !== 'الشروق' && p.time > now)
           .sort((a, b) => a.time.getTime() - b.time.getTime());
 
         let next: PrayerEntry;
-        
+
         if (upcoming.length === 0) {
-          // All prayers today finished, get tomorrow's Fajr
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
           const tomorrowTimes = getTodayPrayerTimes(lat, lng, tomorrow);
@@ -100,8 +132,14 @@ export function usePrayerTimes(): UsePrayerTimesResult {
           next = upcoming[0];
         }
 
-        // Schedule today's prayer notifications (fire-and-forget, non-blocking)
-        schedulePrayerNotifications(lat, lng).catch(() => {});
+        // Schedule 7-day prayer notifications respecting per-prayer settings
+        getEnabledPrayers().then((enabled) => schedulePrayerNotifications(lat, lng, enabled)).catch(() => {});
+
+        // Update Android home screen widget
+        if (Platform.OS === 'android' && PrayerWidgetModule) {
+          const mins = Math.max(0, Math.floor((next.time.getTime() - now.getTime()) / 60000));
+          PrayerWidgetModule.updateWidgetData(next.arabicName, next.timeLabel, mins);
+        }
 
         if (!cancelled) {
           setPrayers(entries);
@@ -109,7 +147,7 @@ export function usePrayerTimes(): UsePrayerTimesResult {
           setMinutesUntilNext(Math.max(0, Math.floor((next.time.getTime() - now.getTime()) / 60000)));
           setIsLoading(false);
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           setError('تعذّر الحصول على مواقيت الصلاة');
           setIsLoading(false);

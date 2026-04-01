@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { User, Settings, Bell, CircleDollarSign, ChevronLeft, ShieldCheck, LogOut, LogIn, Crown } from 'lucide-react-native';
+import { User, Settings, Bell, CircleDollarSign, ChevronLeft, ShieldCheck, LogOut, LogIn, Crown, MapPin } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePrayerLog } from '../../hooks/usePrayerLog';
@@ -118,6 +118,19 @@ export default function ProfileScreen() {
                 <CircleDollarSign color="#F59E0B" size={20} />
               </View>
               <Text className="text-white font-tajawal text-base">حاسبة الزكاة</Text>
+            </View>
+            <ChevronLeft color="#64748B" size={20} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/settings/location')}
+            className="bg-white/5 border border-white/10 p-4 rounded-2xl flex-row items-center justify-between active:bg-white/10"
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="w-10 h-10 bg-emerald-500/20 rounded-xl items-center justify-center border border-emerald-500/20">
+                <MapPin color="#10B981" size={20} />
+              </View>
+              <Text className="text-white font-tajawal text-base">الموقع ومواقيت الصلاة</Text>
             </View>
             <ChevronLeft color="#64748B" size={20} />
           </TouchableOpacity>

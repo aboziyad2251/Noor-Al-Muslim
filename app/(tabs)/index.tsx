@@ -1,13 +1,15 @@
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useState, useEffect } from 'react';
 import { BlurView } from 'expo-blur';
 import { Bell, Moon, Star } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { getTodayHijriArabic } from '../../lib/hijri';
 import PrayerCard, { PrayerStatus } from '../../components/prayer/PrayerCard';
 import { usePrayerTimes } from '../../hooks/usePrayerTimes';
 import { usePrayerLog } from '../../hooks/usePrayerLog';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const hijriDate = getTodayHijriArabic();
   const gregorianDate = new Date().toLocaleDateString('ar-SA', {
     weekday: 'long',
@@ -90,9 +92,12 @@ export default function HomeScreen() {
               {gregorianDate} • {hijriDate}
             </Text>
           </View>
-          <View className="w-12 h-12 bg-white/10 rounded-full items-center justify-center border border-white/20">
+          <TouchableOpacity
+            onPress={() => router.push('/settings/notifications')}
+            className="w-12 h-12 bg-white/10 rounded-full items-center justify-center border border-white/20"
+          >
             <Bell color="#94A3B8" size={22} />
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 

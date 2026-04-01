@@ -58,10 +58,17 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 /**
- * Schedule local notifications for all 5 daily prayers (skips Sunrise).
- * Cancels existing prayer notifications first to avoid duplicates.
+ * Schedule prayer notifications for the next 7 days.
+ * Respects per-prayer enabled settings. Cancels existing prayer notifications first.
+ * @param lat latitude
+ * @param lng longitude
+ * @param enabledPrayers set of prayer keys to schedule (default: all 5)
  */
-export async function schedulePrayerNotifications(lat: number, lng: number): Promise<void> {
+export async function schedulePrayerNotifications(
+  lat: number,
+  lng: number,
+  enabledPrayers: Set<string> = new Set(['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']),
+): Promise<void> {
   const granted = await requestNotificationPermission();
   if (!granted) return;
 
@@ -72,28 +79,36 @@ export async function schedulePrayerNotifications(lat: number, lng: number): Pro
     .map((n) => n.identifier);
   await Promise.all(prayerIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
 
-  const times = getTodayPrayerTimes(lat, lng);
   const now = new Date();
 
-  for (const [key, arabicName] of Object.entries(PRAYER_ARABIC)) {
-    if (key === 'sunrise') continue; // No adhan for sunrise
+  // Schedule 7 days ahead (5 prayers × 7 days = 35 — within the 64 notification OS limit)
+  for (let day = 0; day < 7; day++) {
+    const date = new Date();
+    date.setDate(date.getDate() + day);
 
-    const prayerTime = times[key as keyof typeof times] as Date;
-    if (prayerTime <= now) continue; // Already passed today
+    const times = getTodayPrayerTimes(lat, lng, date);
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `🕌 ${arabicName}`,
-        body: ADHAN_MESSAGES[key],
-        sound: 'default',
-        data: { type: 'prayer', prayer: key },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: prayerTime,
-        channelId: 'prayer-times',
-      },
-    });
+    for (const [key, arabicName] of Object.entries(PRAYER_ARABIC)) {
+      if (key === 'sunrise') continue;
+      if (!enabledPrayers.has(key)) continue;
+
+      const prayerTime = times[key as keyof typeof times] as Date;
+      if (prayerTime <= now) continue;
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `🕌 ${arabicName}`,
+          body: ADHAN_MESSAGES[key],
+          sound: 'default',
+          data: { type: 'prayer', prayer: key },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: prayerTime,
+          channelId: 'prayer-times',
+        },
+      });
+    }
   }
 }
 
