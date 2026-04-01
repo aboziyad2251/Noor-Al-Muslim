@@ -1,0 +1,30 @@
+[
+  {
+    "id": "morning",
+    "title": "أذكار الصباح",
+    "icon": "Sun",
+    "count": 12,
+    "color": "#F59E0B"
+  },
+  {
+    "id": "evening",
+    "title": "أذكار المساء",
+    "icon": "Moon",
+    "count": 15,
+    "color": "#6366F1"
+  },
+  {
+    "id": "prayer",
+    "title": "أذكار الصلاة",
+    "icon": "Mosque",
+    "count": 8,
+    "color": "#10B981"
+  },
+  {
+    "id": "sleep",
+    "title": "أذكار النوم",
+    "icon": "Bed",
+    "count": 10,
+    "color": "#3B82F6"
+  }
+]
