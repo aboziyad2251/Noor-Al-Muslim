@@ -10,6 +10,8 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/useAuthStore';
 import { playAthan } from '../lib/athan';
+import { registerBackgroundTask } from '../lib/background-task';
+import { registerWebPush } from '../lib/web-push';
 import '../global.css';
 
 const SETTINGS_KEY = 'noor_notif_settings';
@@ -48,6 +50,16 @@ export default function RootLayout() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // Register background task for auto-refresh of notifications + widget
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      registerBackgroundTask().catch(() => {});
+    } else {
+      // Web: register service worker + Web Push for iOS Safari / Chrome
+      registerWebPush().catch(() => {});
+    }
+  }, []);
 
   // Athan auto-play listeners
   useEffect(() => {

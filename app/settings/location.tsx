@@ -5,6 +5,7 @@ import { ChevronRight, MapPin, Search, Navigation, Check } from 'lucide-react-na
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { CITIES, LOCATION_STORAGE_KEY, SavedLocation } from '../../lib/cities';
+import { schedulePrayerNotifications } from '../../lib/notifications';
 
 export default function LocationSettingsScreen() {
   const router = useRouter();
@@ -33,6 +34,8 @@ export default function LocationSettingsScreen() {
     const loc: SavedLocation = { name, lat, lng };
     await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
     setSaved(loc);
+    // Immediately reschedule notifications for the new location (fire-and-forget)
+    schedulePrayerNotifications(lat, lng).catch(() => {});
     router.back();
   };
 

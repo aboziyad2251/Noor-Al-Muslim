@@ -36,7 +36,7 @@ const ADHAN_MESSAGES: Record<string, string> = {
  * Request notification permissions. Returns true if granted.
  */
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (!Device.isDevice) return false; // simulators can't receive push
+  if (!Device.isDevice) return false;
 
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === 'granted') return true;
@@ -44,13 +44,30 @@ export async function requestNotificationPermission(): Promise<boolean> {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return false;
 
-  // Android channel
   if (Platform.OS === 'android') {
+    // Main channel — all prayers except Fajr
     await Notifications.setNotificationChannelAsync('prayer-times', {
       name: 'مواقيت الصلاة',
       importance: Notifications.AndroidImportance.HIGH,
-      sound: 'default',
+      sound: 'all.mp3',
       vibrationPattern: [0, 250, 250, 250],
+      enableVibrate: true,
+    });
+
+    // Fajr channel — separate sound
+    await Notifications.setNotificationChannelAsync('prayer-fajr', {
+      name: 'أذان الفجر',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'fajr.mp3',
+      vibrationPattern: [0, 500, 250, 500],
+      enableVibrate: true,
+    });
+
+    // Reminder channel — no custom sound
+    await Notifications.setNotificationChannelAsync('prayer-reminder', {
+      name: 'تذكير الصلاة',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: 'default',
     });
   }
 
@@ -59,10 +76,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 /**
  * Schedule prayer notifications for the next 7 days.
- * Respects per-prayer enabled settings. Cancels existing prayer notifications first.
- * @param lat latitude
- * @param lng longitude
- * @param enabledPrayers set of prayer keys to schedule (default: all 5)
+ * Also schedules a "missed prayer" follow-up 30 min after each prayer.
  */
 export async function schedulePrayerNotifications(
   lat: number,
@@ -75,17 +89,15 @@ export async function schedulePrayerNotifications(
   // Cancel all previously scheduled prayer notifications
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   const prayerIds = scheduled
-    .filter((n) => n.content.data?.type === 'prayer')
+    .filter((n) => n.content.data?.type === 'prayer' || n.content.data?.type === 'missed-prayer')
     .map((n) => n.identifier);
   await Promise.all(prayerIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
 
   const now = new Date();
 
-  // Schedule 7 days ahead (5 prayers × 7 days = 35 — within the 64 notification OS limit)
   for (let day = 0; day < 7; day++) {
     const date = new Date();
     date.setDate(date.getDate() + day);
-
     const times = getTodayPrayerTimes(lat, lng, date);
 
     for (const [key, arabicName] of Object.entries(PRAYER_ARABIC)) {
@@ -95,19 +107,42 @@ export async function schedulePrayerNotifications(
       const prayerTime = times[key as keyof typeof times] as Date;
       if (prayerTime <= now) continue;
 
+      const isFajr = key === 'fajr';
+      const channelId = isFajr ? 'prayer-fajr' : 'prayer-times';
+      const sound = isFajr ? 'fajr.mp3' : 'all.mp3';
+
+      // Main prayer notification
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `🕌 ${arabicName}`,
           body: ADHAN_MESSAGES[key],
-          sound: 'default',
+          sound,
           data: { type: 'prayer', prayer: key },
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: prayerTime,
-          channelId: 'prayer-times',
+          channelId,
         },
       });
+
+      // Missed prayer reminder — 30 min after prayer time (Part 4D)
+      const reminderTime = new Date(prayerTime.getTime() + 30 * 60 * 1000);
+      if (reminderTime > now) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `⏰ هل صليت ${arabicName}؟`,
+            body: 'لا تنسَ تسجيل صلاتك — الحفاظ على الصلاة من أعظم العبادات',
+            sound: 'default',
+            data: { type: 'missed-prayer', prayer: key },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: reminderTime,
+            channelId: 'prayer-reminder',
+          },
+        });
+      }
     }
   }
 }
@@ -115,7 +150,12 @@ export async function schedulePrayerNotifications(
 /**
  * Schedule a single daily reminder (e.g. morning adhkar at 7am)
  */
-export async function scheduleDailyReminder(hour: number, minute: number, title: string, body: string): Promise<void> {
+export async function scheduleDailyReminder(
+  hour: number,
+  minute: number,
+  title: string,
+  body: string,
+): Promise<void> {
   const granted = await requestNotificationPermission();
   if (!granted) return;
 
@@ -125,7 +165,7 @@ export async function scheduleDailyReminder(hour: number, minute: number, title:
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
-      channelId: 'prayer-times',
+      channelId: 'prayer-reminder',
     },
   });
 }

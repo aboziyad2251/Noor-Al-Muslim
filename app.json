@@ -37,6 +37,8 @@
     },
     "plugins": [
       "expo-router",
+      "expo-background-fetch",
+      "expo-task-manager",
       [
         "expo-location",
         {
@@ -50,7 +52,7 @@
         {
           "icon": "./assets/icon.png",
           "color": "#10B981",
-          "sounds": [],
+          "sounds": ["./assets/audio/fajr.mp3", "./assets/audio/all.mp3"],
           "androidMode": "default"
         }
       ]

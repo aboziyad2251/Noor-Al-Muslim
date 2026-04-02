@@ -135,10 +135,17 @@ export function usePrayerTimes(): UsePrayerTimesResult {
         // Schedule 7-day prayer notifications respecting per-prayer settings
         getEnabledPrayers().then((enabled) => schedulePrayerNotifications(lat, lng, enabled)).catch(() => {});
 
-        // Update Android home screen widget
+        // Update Android home screen widget with prayer epoch times for live countdown
         if (Platform.OS === 'android' && PrayerWidgetModule) {
           const mins = Math.max(0, Math.floor((next.time.getTime() - now.getTime()) / 60000));
-          PrayerWidgetModule.updateWidgetData(next.arabicName, next.timeLabel, mins);
+          const prayerEpochs = {
+            fajr:    times.fajr.getTime(),
+            dhuhr:   times.dhuhr.getTime(),
+            asr:     times.asr.getTime(),
+            maghrib: times.maghrib.getTime(),
+            isha:    times.isha.getTime(),
+          };
+          PrayerWidgetModule.updateWidgetData(next.arabicName, next.timeLabel, mins, prayerEpochs);
         }
 
         if (!cancelled) {
