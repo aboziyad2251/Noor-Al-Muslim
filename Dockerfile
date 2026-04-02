@@ -10,7 +10,15 @@ RUN npm install
 
 # Copy source code and build
 COPY . .
-# Setting environment variables for the build if needed
+
+# Public env vars baked into the web bundle at build time
+ARG EXPO_PUBLIC_SUPABASE_URL
+ARG EXPO_PUBLIC_SUPABASE_ANON_KEY
+ARG EXPO_PUBLIC_VAPID_PUBLIC_KEY
+ENV EXPO_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL
+ENV EXPO_PUBLIC_SUPABASE_ANON_KEY=$EXPO_PUBLIC_SUPABASE_ANON_KEY
+ENV EXPO_PUBLIC_VAPID_PUBLIC_KEY=$EXPO_PUBLIC_VAPID_PUBLIC_KEY
+
 RUN npx expo export -p web
 
 # ============================================================

@@ -1,7 +1,12 @@
 services:
   # --- Noor Al Muslim App ---
   noor_app:
-    build: .
+    build:
+      context: .
+      args:
+        EXPO_PUBLIC_SUPABASE_URL: "https://ltejfgzulvxvuhnyhuzs.supabase.co"
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0ZWpmZ3p1bHZ4dnVobnlodXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTQzNDcsImV4cCI6MjA5MDI5MDM0N30.nbxJZ3cEy_TuoKdFbj6kfoZxnZfJj99YteKxeJAwsos"
+        EXPO_PUBLIC_VAPID_PUBLIC_KEY: "BLblKZHyaRfPIXEP8Lf1cqwzSpWE6NT8K6O5eIouZMS6lWM7A9P7Ab6Da5B2MX9N0TGyjZGezFnKLOLAP2eOic0"
     image: noorapp:latest
     container_name: noorapp
     restart: always
