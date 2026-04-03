@@ -37,9 +37,6 @@ jobs:
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
           echo "EXPO_PUBLIC_VAPID_PUBLIC_KEY=${{ secrets.EXPO_PUBLIC_VAPID_PUBLIC_KEY }}" >> .env
 
-      - name: Generate Android project (expo prebuild)
-        run: npx expo prebuild --platform android --clean
-
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
