@@ -47,18 +47,16 @@ export function usePrayerLog() {
   useEffect(() => {
     async function load() {
       const all = await loadLocal();
-      const today = todayISO();
-      setTodayLogs(all[today] ?? {});
+      const todayKey = todayISO();
+      setTodayLogs(all[todayKey] ?? {});
 
       // Compute streak: count consecutive days with at least 1 logged prayer.
       // Start from yesterday — today only counts if it already has a log,
       // which we check first before going backwards.
       let s = 0;
-      const today = new Date();
-      const todayKey = today.toISOString().split('T')[0];
       const todayHasLog = all[todayKey] && Object.keys(all[todayKey]).length > 0;
 
-      const d = new Date(today);
+      const d = new Date(todayKey);
       if (!todayHasLog) {
         // Start checking from yesterday
         d.setDate(d.getDate() - 1);

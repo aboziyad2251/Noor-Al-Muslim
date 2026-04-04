@@ -29,11 +29,23 @@
       "bundler": "metro",
       "name": "نور المسلم",
       "shortName": "نور المسلم",
+      "description": "تطبيق إسلامي شامل لأوقات الصلاة والقرآن والأذكار",
       "themeColor": "#10B981",
       "backgroundColor": "#0f172a",
       "display": "standalone",
+      "orientation": "portrait",
       "lang": "ar",
-      "dir": "rtl"
+      "dir": "rtl",
+      "splash": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#0f172a"
+      },
+      "meta": {
+        "apple-mobile-web-app-capable": "yes",
+        "apple-mobile-web-app-status-bar-style": "black-translucent",
+        "apple-mobile-web-app-title": "نور المسلم"
+      }
     },
     "plugins": [
       "expo-router",
