@@ -40,3 +40,5 @@ yarn-error.*
 # generated native folders
 /ios
 # android is committed (contains custom Kotlin native modules)
+deployment.tar.gz
+deployment.tar.gz
