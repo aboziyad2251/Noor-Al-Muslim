@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { User, Settings, Bell, CircleDollarSign, ChevronLeft, ShieldCheck, LogOut, LogIn, Crown, MapPin } from 'lucide-react-native';
+import { User, Settings, Bell, CircleDollarSign, ChevronLeft, ShieldCheck, LogOut, LogIn, Crown, MapPin, Moon, Activity, BookOpen, BookMarked } from 'lucide-react-native';
+import IbadahCalendar from '../../components/ui/IbadahCalendar';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePrayerLog } from '../../hooks/usePrayerLog';
@@ -106,8 +107,56 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Ibadah Heatmap */}
+        <View className="px-6 py-6 border-b border-white/5">
+          <View className="flex-row items-center gap-2 mb-4">
+            <Activity color="#10B981" size={18} />
+            <Text className="text-white font-tajawal font-bold text-lg">مسيرتي الإيمانية</Text>
+          </View>
+          <IbadahCalendar />
+        </View>
+
         {/* Menu */}
         <View className="px-6 py-4 gap-3">
+
+          <TouchableOpacity
+            onPress={() => router.push('/weekly-report')}
+            className="bg-white/5 border border-white/10 p-4 rounded-2xl flex-row items-center justify-between active:bg-white/10"
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="w-10 h-10 bg-emerald-500/20 rounded-xl items-center justify-center border border-emerald-500/20">
+                <BookOpen color="#10B981" size={20} />
+              </View>
+              <Text className="text-white font-tajawal text-base">التقرير الروحاني الأسبوعي</Text>
+            </View>
+            <ChevronLeft color="#64748B" size={20} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/hifz')}
+            className="bg-white/5 border border-white/10 p-4 rounded-2xl flex-row items-center justify-between active:bg-white/10"
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="w-10 h-10 bg-indigo-500/20 rounded-xl items-center justify-center border border-indigo-500/20">
+                <BookMarked color="#818CF8" size={20} />
+              </View>
+              <Text className="text-white font-tajawal text-base">مسار الحفظ الذكي</Text>
+            </View>
+            <ChevronLeft color="#64748B" size={20} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/fasting')}
+            className="bg-white/5 border border-white/10 p-4 rounded-2xl flex-row items-center justify-between active:bg-white/10"
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="w-10 h-10 bg-emerald-500/20 rounded-xl items-center justify-center border border-emerald-500/20">
+                <Moon color="#10B981" size={20} />
+              </View>
+              <Text className="text-white font-tajawal text-base">تتبع الصيام</Text>
+            </View>
+            <ChevronLeft color="#64748B" size={20} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/zakat')}
@@ -148,7 +197,10 @@ export default function ProfileScreen() {
             <ChevronLeft color="#64748B" size={20} />
           </TouchableOpacity>
 
-          <TouchableOpacity className="bg-white/5 border border-white/10 p-4 rounded-2xl flex-row items-center justify-between active:bg-white/10">
+          <TouchableOpacity
+            onPress={() => router.push('/settings/privacy')}
+            className="bg-white/5 border border-white/10 p-4 rounded-2xl flex-row items-center justify-between active:bg-white/10"
+          >
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-slate-800 rounded-xl items-center justify-center border border-white/5">
                 <ShieldCheck color="#94A3B8" size={20} />

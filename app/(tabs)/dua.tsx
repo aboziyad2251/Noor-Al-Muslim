@@ -1,7 +1,9 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Animated, Platform } from 'react-native';
-import { Heart, BookOpen, ChevronLeft, ChevronRight, RefreshCw, Trophy } from 'lucide-react-native';
+import { Heart, BookOpen, ChevronLeft, ChevronRight, RefreshCw, Trophy, Mic, MicOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { logAzkarCompletion } from '../../lib/ibadah-log';
+import { useVoiceDhikr } from '../../hooks/useVoiceDhikr';
 
 // @ts-ignore
 import { AZKAR_BY_CATEGORY, CATEGORIES } from '../../data/azkar';
@@ -18,6 +20,35 @@ function DuaReader({ categoryId, onBack }: { categoryId: string; onBack: () => v
   const currentIndexRef = useRef(0);
   currentIndexRef.current = currentIndex;
 
+  const { isListening, isSupported: voiceSupported, start: startVoice, stop: stopVoice } = useVoiceDhikr(
+    useCallback(() => {
+      // Called when a voice spike is detected — same logic as handleCount
+      const idx = currentIndexRef.current;
+      setCounters((prev) => {
+        if (prev[idx] <= 0) return prev;
+        const next = [...prev];
+        next[idx]--;
+        if (next[idx] === 0 && idx < azkarList.length - 1) {
+          setIsCompleting(true);
+          setTimeout(() => {
+            setIsCompleting(false);
+            setCurrentIndex((i) => Math.min(i + 1, azkarList.length - 1));
+          }, 1400);
+        }
+        return next;
+      });
+    }, [azkarList.length])
+  );
+
+  // Stop listening when navigating away or category completes
+  useEffect(() => {
+    return () => { stopVoice(); };
+  }, []);
+
+  useEffect(() => {
+    if (allDone) stopVoice();
+  }, [allDone]);
+
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const checkAnim = useRef(new Animated.Value(0)).current;
@@ -27,6 +58,11 @@ function DuaReader({ categoryId, onBack }: { categoryId: string; onBack: () => v
   const total = zikr?.count ?? 1;
   const isCurrentDone = remaining === 0;
   const allDone = counters.every((c) => c === 0);
+
+  // Log azkar completion to ibadah heatmap when the category is fully done
+  useEffect(() => {
+    if (allDone) logAzkarCompletion();
+  }, [allDone]);
   const completedCount = counters.filter((c) => c === 0).length;
 
   useEffect(() => {
@@ -124,9 +160,20 @@ function DuaReader({ categoryId, onBack }: { categoryId: string; onBack: () => v
     <View className="flex-1 bg-slate-950">
       {/* Header */}
       <View className="flex-row justify-between items-center px-4 pt-16 pb-4 bg-slate-900 border-b border-slate-800 shadow-sm z-10">
-        <TouchableOpacity onPress={handleReset} className="w-12 h-12 items-center justify-center rounded-full bg-slate-800">
-          <RefreshCw color="#10B981" size={22} />
-        </TouchableOpacity>
+        <View className="flex-row gap-2">
+          <TouchableOpacity onPress={handleReset} className="w-12 h-12 items-center justify-center rounded-full bg-slate-800">
+            <RefreshCw color="#10B981" size={22} />
+          </TouchableOpacity>
+          {voiceSupported && (
+            <TouchableOpacity
+              onPress={isListening ? stopVoice : startVoice}
+              className="w-12 h-12 items-center justify-center rounded-full"
+              style={{ backgroundColor: isListening ? '#10B98133' : '#1E293B', borderWidth: 1, borderColor: isListening ? '#10B981' : '#334155' }}
+            >
+              {isListening ? <Mic color="#10B981" size={20} /> : <MicOff color="#64748B" size={20} />}
+            </TouchableOpacity>
+          )}
+        </View>
         <Text className="text-white text-xl font-bold flex-1 text-center" style={{ writingDirection: 'rtl' }}>
           {categoryTitle}
         </Text>
@@ -217,8 +264,14 @@ function DuaReader({ categoryId, onBack }: { categoryId: string; onBack: () => v
             </View>
           </TouchableOpacity>
           <Text className="text-slate-500 text-sm">
-            {isCurrentDone ? 'انتقال تلقائي...' : 'اضغط للتسبيح'}
+            {isCurrentDone ? 'انتقال تلقائي...' : isListening ? 'قل الذكر بصوت واضح...' : 'اضغط للتسبيح'}
           </Text>
+          {isListening && !isCurrentDone && (
+            <View className="flex-row items-center gap-2 mt-2 bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/30">
+              <View className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <Text className="text-emerald-400 font-tajawal text-xs">الميكروفون يستمع</Text>
+            </View>
+          )}
         </View>
 
         {/* Prev / Next Nav */}

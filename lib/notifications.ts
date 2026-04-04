@@ -3,6 +3,9 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { getTodayPrayerTimes } from './prayer';
 
+/** True only on native Android/iOS — expo-notifications is not supported on web */
+const isNative = Platform.OS !== 'web';
+
 // Show notification immediately when received in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -145,6 +148,88 @@ export async function schedulePrayerNotifications(
       }
     }
   }
+}
+
+/**
+ * Schedule Suhoor reminder X minutes before Fajr.
+ * Cancels any existing Suhoor notification first.
+ */
+export async function scheduleSuhoorReminder(
+  fajrTime: Date,
+  minutesBefore: number = 30,
+): Promise<void> {
+  if (!isNative) return; // Web push for fasting reminders is not supported
+  const granted = await requestNotificationPermission();
+  if (!granted) return;
+
+  // Cancel previous suhoor notifications
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const suhoorIds = scheduled
+    .filter((n) => n.content.data?.type === 'suhoor')
+    .map((n) => n.identifier);
+  await Promise.all(suhoorIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
+
+  const suhoorTime = new Date(fajrTime.getTime() - minutesBefore * 60_000);
+  if (suhoorTime <= new Date()) return;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '🌙 تذكير السحور',
+      body: `تبقى ${minutesBefore} دقيقة على أذان الفجر — لا تفوّت سحورك`,
+      sound: 'default',
+      data: { type: 'suhoor' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: suhoorTime,
+      channelId: 'prayer-reminder',
+    },
+  });
+}
+
+/**
+ * Schedule Iftar reminder at Maghrib time.
+ * Cancels any existing Iftar notification first.
+ */
+export async function scheduleIftarReminder(maghribTime: Date): Promise<void> {
+  if (!isNative) return; // Web push for fasting reminders is not supported
+  const granted = await requestNotificationPermission();
+  if (!granted) return;
+
+  // Cancel previous iftar notifications
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const iftarIds = scheduled
+    .filter((n) => n.content.data?.type === 'iftar')
+    .map((n) => n.identifier);
+  await Promise.all(iftarIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
+
+  if (maghribTime <= new Date()) return;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '🌅 حان وقت الإفطار',
+      body: 'اللهم لك صمت وعلى رزقك أفطرت — مبارك عليك إفطارك',
+      sound: 'all.mp3',
+      data: { type: 'iftar' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: maghribTime,
+      channelId: 'prayer-times',
+    },
+  });
+}
+
+/**
+ * Cancel both Suhoor and Iftar reminders.
+ */
+export async function cancelFastingReminders(): Promise<void> {
+  if (!isNative) return;
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const ids = scheduled
+    .filter((n) => n.content.data?.type === 'suhoor' || n.content.data?.type === 'iftar')
+    .map((n) => n.identifier);
+  await Promise.all(ids.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
 }
 
 /**

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Audio } from 'expo-av';
-
-// Mishary Rashid Al-Afasy CDN via EveryAyah (free, no key required)
-function buildAudioUrl(surah: number, ayah: number): string {
-  const s = String(surah).padStart(3, '0');
-  const a = String(ayah).padStart(3, '0');
-  return `https://everyayah.com/data/Alafasy_128kbps/${s}${a}.mp3`;
-}
+import {
+  Reciter,
+  RECITERS,
+  DEFAULT_RECITER_ID,
+  buildAudioUrl,
+  getSelectedReciter,
+  saveSelectedReciter,
+} from '../lib/reciters';
 
 export type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
@@ -16,11 +17,13 @@ interface UseQuranAudioResult {
   isPlayingAll: boolean;
   durationMs: number;
   positionMs: number;
+  selectedReciter: Reciter;
   play: (surah: number, ayah: number) => Promise<void>;
   playAll: (surah: number, totalAyahs: number, startAyah?: number) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   stop: () => Promise<void>;
+  selectReciter: (id: string) => Promise<void>;
 }
 
 export function useQuranAudio(): UseQuranAudioResult {
@@ -30,14 +33,21 @@ export function useQuranAudio(): UseQuranAudioResult {
   const [isPlayingAll, setIsPlayingAll] = useState(false);
   const [durationMs, setDurationMs] = useState(0);
   const [positionMs, setPositionMs] = useState(0);
+  const [selectedReciter, setSelectedReciter] = useState<Reciter>(RECITERS[0]);
 
-  // Refs to track continuous playback state without stale closures
+  // Refs to avoid stale closures in playback callbacks
   const isPlayingAllRef = useRef(false);
   const totalAyahsRef = useRef(0);
   const surahRef = useRef(0);
+  const reciterFolderRef = useRef(RECITERS[0].folder);
 
-  // Configure audio session on mount
+  // Load persisted reciter on mount
   useEffect(() => {
+    getSelectedReciter().then((r) => {
+      setSelectedReciter(r);
+      reciterFolderRef.current = r.folder;
+    });
+
     Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
       staysActiveInBackground: true,
@@ -56,9 +66,7 @@ export function useQuranAudio(): UseQuranAudioResult {
       try {
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
-      } catch {
-        // Sound may already be unloaded
-      }
+      } catch {}
       soundRef.current = null;
     }
     setPlaybackState('idle');
@@ -69,14 +77,11 @@ export function useQuranAudio(): UseQuranAudioResult {
 
   const play = useCallback(async (surah: number, ayah: number) => {
     try {
-      // Unload previous sound without resetting playAll state
       if (soundRef.current) {
         try {
           await soundRef.current.stopAsync();
           await soundRef.current.unloadAsync();
-        } catch {
-          // Already unloaded
-        }
+        } catch {}
         soundRef.current = null;
       }
 
@@ -85,8 +90,10 @@ export function useQuranAudio(): UseQuranAudioResult {
       setPositionMs(0);
       setDurationMs(0);
 
+      const url = buildAudioUrl(reciterFolderRef.current, surah, ayah);
+
       const { sound } = await Audio.Sound.createAsync(
-        { uri: buildAudioUrl(surah, ayah) },
+        { uri: url },
         { shouldPlay: true },
         (status) => {
           if (!status.isLoaded) return;
@@ -94,13 +101,11 @@ export function useQuranAudio(): UseQuranAudioResult {
           setDurationMs(status.durationMillis ?? 0);
 
           if (status.didJustFinish) {
-            // Auto-advance if playing the whole surah
             if (isPlayingAllRef.current) {
               const nextAyah = ayah + 1;
               if (nextAyah <= totalAyahsRef.current) {
                 play(surahRef.current, nextAyah);
               } else {
-                // Finished the entire surah
                 isPlayingAllRef.current = false;
                 setIsPlayingAll(false);
                 setPlaybackState('idle');
@@ -120,7 +125,7 @@ export function useQuranAudio(): UseQuranAudioResult {
       setPlaybackState('error');
       setCurrentAyah(null);
     }
-  }, [stop]);
+  }, []);
 
   const playAll = useCallback(async (surah: number, totalAyahs: number, startAyah = 1) => {
     surahRef.current = surah;
@@ -144,16 +149,26 @@ export function useQuranAudio(): UseQuranAudioResult {
     }
   }, [playbackState]);
 
+  const selectReciter = useCallback(async (id: string) => {
+    const reciter = RECITERS.find((r) => r.id === id) ?? RECITERS[0];
+    await stop();
+    await saveSelectedReciter(id);
+    setSelectedReciter(reciter);
+    reciterFolderRef.current = reciter.folder;
+  }, [stop]);
+
   return {
     playbackState,
     currentAyah,
     isPlayingAll,
     durationMs,
     positionMs,
+    selectedReciter,
     play,
     playAll,
     pause,
     resume,
     stop,
+    selectReciter,
   };
 }

@@ -12,7 +12,7 @@
     "sb:link": "supabase link",
     "sb:migrate": "supabase db push",
     "sb:deploy": "supabase functions deploy",
-    "sb:secrets": "supabase secrets set GLM_API_KEY=",
+    "sb:secrets": "supabase secrets set DEEPSEEK_API_KEY=",
     "setup": "npm run sb:link && npm run sb:migrate && npm run sb:deploy"
   },
   "dependencies": {

@@ -50,9 +50,20 @@ export function usePrayerLog() {
       const today = todayISO();
       setTodayLogs(all[today] ?? {});
 
-      // Compute streak: count consecutive days with at least 1 logged prayer
+      // Compute streak: count consecutive days with at least 1 logged prayer.
+      // Start from yesterday — today only counts if it already has a log,
+      // which we check first before going backwards.
       let s = 0;
-      const d = new Date();
+      const today = new Date();
+      const todayKey = today.toISOString().split('T')[0];
+      const todayHasLog = all[todayKey] && Object.keys(all[todayKey]).length > 0;
+
+      const d = new Date(today);
+      if (!todayHasLog) {
+        // Start checking from yesterday
+        d.setDate(d.getDate() - 1);
+      }
+
       while (true) {
         const key = d.toISOString().split('T')[0];
         if (all[key] && Object.keys(all[key]).length > 0) {

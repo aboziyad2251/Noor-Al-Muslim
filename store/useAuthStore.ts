@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { syncLocalDataToSupabase } from '../lib/sync-local-data';
+
+const SYNC_DONE_KEY = 'noor_local_sync_done';
 
 const ONBOARDING_KEY = 'noor_onboarding_complete';
 
@@ -45,8 +48,19 @@ export const useAuthStore = create<AuthState>((set) => ({
         hasCompletedOnboarding: onboardingDone === 'true',
       });
 
-      supabase.auth.onAuthStateChange((_event, newSession) => {
+      supabase.auth.onAuthStateChange((event, newSession) => {
         set({ session: newSession, user: newSession?.user ?? null });
+
+        // On first sign-in, upload any locally stored guest data to Supabase
+        if (event === 'SIGNED_IN' && newSession?.user) {
+          const userId = newSession.user.id;
+          AsyncStorage.getItem(SYNC_DONE_KEY).then((done) => {
+            if (done === userId) return; // already synced for this account
+            syncLocalDataToSupabase(supabase, userId).then(() => {
+              AsyncStorage.setItem(SYNC_DONE_KEY, userId);
+            });
+          });
+        }
       });
     } catch (e) {
       console.error('Initialization failed', e);
